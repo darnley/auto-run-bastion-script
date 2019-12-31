@@ -4,15 +4,15 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        1.0
+  Version:        2.0
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
-  Purpose/Change: Initial script development
+  Purpose/Change: Use PuTTY instead of basic SSH
 #>
 param([switch]$Elevated)
 
 #---------------------------------------------------------[Initializations]--------------------------------------------------------
-$Username = 'username'; # Put the account username
+$Username = 'darnley'; # Put the account username
 $Password = $null; # Optional
 
 # Configure the tunnels to connect to
@@ -22,7 +22,7 @@ $Tunnels = @(
 );
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-$RemoteServerHost = 'hostname.com';
+$RemoteServerHost = '40.117.116.173';
 $RemoteServerPort = 22;
 
 $MaxRetryCount = 3;
@@ -79,7 +79,7 @@ function ChocolateyInstall {
 
     RunScriptAsAdministrator
 
-    Start-Process choco.exe -ArgumentList ("install $package")
+    Invoke-Expression "choco.exe install $package -y"
 }
 
 function InstallDependencies {
@@ -96,13 +96,13 @@ function InstallDependencies {
         Write-Host 'Chocolatey installed' -ForegroundColor DarkGreen
     }
 
-    # Verify for SSH installation
-    If ((Test-CommandExists ssh) -eq $false) {
-        Write-Host 'SSH not installed. Initializing installation...' -ForegroundColor Green
-        ChocolateyInstall openssh
+    # Verify for PuTTY installation
+    If ((Test-CommandExists putty) -eq $false) {
+        Write-Host 'PuTTY not installed. Initializing installation...' -ForegroundColor Green
+        ChocolateyInstall putty
     }
     else {
-        Write-Host 'SSH installed' -ForegroundColor DarkGreen
+        Write-Host 'PuTTY installed' -ForegroundColor DarkGreen
     }
 }
 
@@ -115,17 +115,17 @@ function MountSshCommand {
         $TunnelsStr += "-R $($tunnel.LocalPort):$($tunnel.RemoteHost):$($tunnel.RemotePort) "
     }
 
-    $FinalCommand = "-N $($TunnelsStr)$($Username):$($Password)@$($RemoteServerHost) -p $($RemoteServerPort)"
+    $FinalCommand = "-N $($TunnelsStr)$($Username)@$($RemoteServerHost) -P $($RemoteServerPort)"
 
     RETURN $FinalCommand;
 }
 
 function RunSsh {
-    Write-Host "Attempting to connect to $RemoteServerHost..." -ForegroundColor Yellow
+    Write-Host "Attempting to connect to $RemoteServerHost with $($Tunnels.Length) tunnel(s)..." -ForegroundColor Yellow
 
     $ArgumentList = MountSshCommand
 
-    Invoke-Expression "ssh.exe $ArgumentList";
+    Invoke-Expression "plink.exe -ssh $ArgumentList -pw $($Password)";
 }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
@@ -138,6 +138,8 @@ while ([string]::IsNullOrEmpty($Password)) {
 }
 
 Write-Host 'Password set' -ForegroundColor Gray
+
+'---'
 
 for ($i = 0; $i -lt $MaxRetryCount; $i++) {
     RunSsh
