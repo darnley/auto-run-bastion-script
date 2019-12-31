@@ -4,15 +4,15 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        2.0
+  Version:        2.1
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
-  Purpose/Change: Use PuTTY instead of basic SSH
+  Purpose/Change: Add script configuration using UI
 #>
 param([switch]$Elevated)
 
 #---------------------------------------------------------[Initializations]--------------------------------------------------------
-$Username = 'darnley'; # Put the account username
+$Username = '###BASTION_SSH_USERNAME###'; # Put the account username
 $Password = $null; # Optional
 
 # Configure the tunnels to connect to
@@ -22,7 +22,7 @@ $Tunnels = @(
 );
 
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
-$RemoteServerHost = '40.117.116.173';
+$RemoteServerHost = '###BASTION_SSH_HOSTNAME###';
 $RemoteServerPort = 22;
 
 $MaxRetryCount = 3;
@@ -35,6 +35,26 @@ function SetPasswordUsingVisualBasic {
     $msg = 'Enter your password for account:'
 
     RETURN [Microsoft.VisualBasic.Interaction]::InputBox($msg, $title)
+}
+
+function ConfigureUsingUI {
+    [void][Reflection.Assembly]::LoadWithPartialName('Microsoft.VisualBasic')
+
+    if ([string]::IsNullOrEmpty($RemoteServerHost) -or ($RemoteServerHost -eq '###BASTION_SSH_HOSTNAME###')) {
+        $InputHostname = [Microsoft.VisualBasic.Interaction]::InputBox('Enter the server hostname:', 'Server configuration')
+    }
+
+    if ([string]::IsNullOrEmpty($Username) -or ($Username -eq '###BASTION_SSH_USERNAME###')) {
+        $InputUsername = [Microsoft.VisualBasic.Interaction]::InputBox('Enter the account username:', 'Server configuration')
+    }
+
+    if ($InputHostname -or $InputUsername) {
+        (Get-Content $PSCommandPath).Replace("= '###BASTION_SSH_USERNAME###';", "= '$InputUsername';").Replace(" = '###BASTION_SSH_HOSTNAME###';", " = '$InputHostname';") | Set-Content $PSCommandPath
+    
+        Start-Process powershell.exe -ArgumentList ($PSCommandPath)
+
+        exit
+    }
 }
 
 function Test-Admin {
@@ -124,11 +144,14 @@ function RunSsh {
     Write-Host "Attempting to connect to $RemoteServerHost with $($Tunnels.Length) tunnel(s)..." -ForegroundColor Yellow
 
     $ArgumentList = MountSshCommand
+    $Command = "plink.exe -ssh $ArgumentList -pw $($Password)";
 
-    Invoke-Expression "plink.exe -ssh $ArgumentList -pw $($Password)";
+    Invoke-Expression $Command;
 }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
+ConfigureUsingUI
+
 InstallDependencies
 
 while ([string]::IsNullOrEmpty($Password)) {
