@@ -4,28 +4,30 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        2.2
+  Version:        2.3
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
-  Purpose/Change: Separate username and hostname UI
+  Purpose/Change: Change variable modularization
 #>
 param([switch]$Elevated)
 
 #---------------------------------------------------------[Initializations]--------------------------------------------------------
+$MaxRetryCount = 3;
+
+#----------------------------------------------------------[Declarations]----------------------------------------------------------
+# Credentials
 $Username = '###BASTION_SSH_USERNAME###'; # Put the account username
 $Password = $null; # Optional
 
-# Configure the tunnels to connect to
+# Bastion server
+$RemoteServerHost = '###BASTION_SSH_HOSTNAME###';
+$RemoteServerPort = 22;
+
+# Tunnels (RemoteHost, RemotePort, LocalPort)
 $Tunnels = @(
     @{ RemoteHost = '255.255.255.255'; RemotePort = 8080; LocalPort = 32400 },
     @{ RemoteHost = '255.255.255.0'; RemotePort = 8081; LocalPort = 32400 }
 );
-
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
-$RemoteServerHost = '###BASTION_SSH_HOSTNAME###';
-$RemoteServerPort = 22;
-
-$MaxRetryCount = 3;
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------
 function SetPasswordUsingVisualBasic {
