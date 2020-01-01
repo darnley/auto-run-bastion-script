@@ -4,10 +4,10 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        2.3
+  Version:        2.4
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
-  Purpose/Change: Change variable modularization
+  Purpose/Change: Change admin invoking
 #>
 param([switch]$Elevated)
 
@@ -103,7 +103,7 @@ function RunScriptAsAdministrator {
         } 
         else {
             Write-Host 'Running application with privileges' -ForegroundColor Gray
-            Start-Process powershell.exe -Verb RunAs -ArgumentList ('-noprofile -noexit -file "{0}" -elevated' -f ($myinvocation.MyCommand.Definition))
+            Start-Process powershell.exe -Verb RunAs -ArgumentList ($PSCommandPath)
         }
 
         exit
@@ -122,9 +122,9 @@ function InstallDependencies {
     # Verify for Chocolatey installation
     If ((Test-CommandExists choco) -eq $false) {
         Write-Host 'Chocolatey not installed. Initializing installation...' -ForegroundColor Green
-
+        
         RunScriptAsAdministrator
-
+        
         Set-ExecutionPolicy Bypass -Scope Process -Force;
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
     }
@@ -135,7 +135,7 @@ function InstallDependencies {
     # Verify for PuTTY installation
     If ((Test-CommandExists putty) -eq $false) {
         Write-Host 'PuTTY not installed. Initializing installation...' -ForegroundColor Green
-        ChocolateyInstall putty
+        ChocolateyInstall putty.install
     }
     else {
         Write-Host 'PuTTY installed' -ForegroundColor DarkGreen
@@ -166,9 +166,9 @@ function RunSsh {
 }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
-ConfigureUsingUI
-
 InstallDependencies
+
+ConfigureUsingUI
 
 while ([string]::IsNullOrEmpty($Password)) {
     Write-Host 'Default password not set. Asking for user interaction...' -ForegroundColor Gray
