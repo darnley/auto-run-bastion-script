@@ -4,10 +4,10 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        2.1
+  Version:        2.2
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
-  Purpose/Change: Add script configuration using UI
+  Purpose/Change: Separate username and hostname UI
 #>
 param([switch]$Elevated)
 
@@ -41,16 +41,30 @@ function ConfigureUsingUI {
     [void][Reflection.Assembly]::LoadWithPartialName('Microsoft.VisualBasic')
 
     if ([string]::IsNullOrEmpty($RemoteServerHost) -or ($RemoteServerHost -eq '###BASTION_SSH_HOSTNAME###')) {
+        Write-Host 'Configuring server hostname...'
         $InputHostname = [Microsoft.VisualBasic.Interaction]::InputBox('Enter the server hostname:', 'Server configuration')
     }
 
     if ([string]::IsNullOrEmpty($Username) -or ($Username -eq '###BASTION_SSH_USERNAME###')) {
+        Write-Host 'Configuring SSH username...'
         $InputUsername = [Microsoft.VisualBasic.Interaction]::InputBox('Enter the account username:', 'Server configuration')
     }
 
     if ($InputHostname -or $InputUsername) {
-        (Get-Content $PSCommandPath).Replace("= '###BASTION_SSH_USERNAME###';", "= '$InputUsername';").Replace(" = '###BASTION_SSH_HOSTNAME###';", " = '$InputHostname';") | Set-Content $PSCommandPath
+        Write-Host 'Replacing configuration in script...'
+
+        $Content = (Get-Content $PSCommandPath)
     
+        if ($InputHostname) {
+            $Content = $Content.Replace(" = '###BASTION_SSH_HOSTNAME###';", " = '$InputHostname';");
+        }
+
+        if ($InputUsername) {
+            $Content = $Content.Replace("= '###BASTION_SSH_USERNAME###';", "= '$InputUsername';");
+        }
+
+        $Content | Set-Content $PSCommandPath
+
         Start-Process powershell.exe -ArgumentList ($PSCommandPath)
 
         exit
