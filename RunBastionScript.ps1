@@ -4,7 +4,7 @@
   Instead of manually writing the SSH command, the user only configure its username inside the file and the script
   will ask its password using a Visual Basic input box.
 .NOTES
-  Version:        2.5
+  Version:        2.6
   Author:         Darnley Costa
   Creation Date:  Dec/31/2019
   Purpose/Change: Change admin invoking
@@ -160,7 +160,7 @@ function RunSsh {
     Write-Host "Attempting to connect to $RemoteServerHost with $($Tunnels.Length) tunnel(s)..." -ForegroundColor Yellow
 
     $ArgumentList = MountSshCommand
-    $Command = "plink.exe -ssh $ArgumentList -pw $($Password) -no-antispoof";
+    $Command = "plink.exe -v -ssh $ArgumentList -pw $($Password) -no-antispoof";
 
     Invoke-Expression $Command;
 }
